@@ -81,6 +81,7 @@ class LocalLLM(LLM):
             revision=revision,
             debug=debug,
         )
+        self.device = device
 
         return model, tokenizer
 
@@ -99,7 +100,7 @@ class LocalLLM(LLM):
         prompt_input = conv_temp.get_prompt()
         input_ids = self.tokenizer([prompt_input]).input_ids
         output_ids = self.model.generate(
-            torch.as_tensor(input_ids).cuda(),
+            torch.as_tensor(input_ids).cuda() if "gpu" in self.device else torch.as_tensor(input_ids),
             do_sample=False,
             temperature=temperature,
             repetition_penalty=repetition_penalty,
@@ -116,7 +117,7 @@ class LocalLLM(LLM):
         )
 
     @torch.inference_mode()
-    def generate_batch(self, prompts, temperature=0.01, max_tokens=512, repetition_penalty=1.0, batch_size=16):
+    def generate_batch(self, prompts, temperature=0.01, max_tokens=512, repetition_penalty=1.0, batch_size=2):
         prompt_inputs = []
         for prompt in prompts:
             conv_temp = get_conversation_template(self.model_path)
@@ -152,12 +153,13 @@ class LocalVLLM(LLM):
     def __init__(self,
                  model_path,
                  gpu_memory_utilization=0.95,
-                 system_message=None
+                 system_message=None,
+                 vllm_args={}
                  ):
         super().__init__()
         self.model_path = model_path
         self.model = vllm(
-            self.model_path, gpu_memory_utilization=gpu_memory_utilization)
+            self.model_path, gpu_memory_utilization=gpu_memory_utilization, **vllm_args)
         
         if system_message is None and 'Llama-2' in model_path:
             # monkey patch for latest FastChat to use llama2's official system message
