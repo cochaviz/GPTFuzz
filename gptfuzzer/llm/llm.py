@@ -100,7 +100,7 @@ class LocalLLM(LLM):
         prompt_input = conv_temp.get_prompt()
         input_ids = self.tokenizer([prompt_input]).input_ids
         output_ids = self.model.generate(
-            torch.as_tensor(input_ids).cuda() if "cuda" in self.device else torch.as_tensor(input_ids),
+            torch.as_tensor(input_ids).cuda()
             do_sample=False,
             temperature=temperature,
             repetition_penalty=repetition_penalty,
